@@ -13,6 +13,10 @@ const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (compatible; LMR-Bot/1.0; +https://log-momentum.vercel.app)'
 };
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fetchPriceNow(id) {
   try {
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`;
@@ -60,7 +64,9 @@ module.exports = async (req, res) => {
     }
 
     const pNowObj = await fetchPriceNow(id);
+    await delay(20000); // 20s pause
     const p3Obj = await fetchHistoricalPrice(id, 3);
+    await delay(20000); // 20s pause
     const p7Obj = await fetchHistoricalPrice(id, 7);
 
     const pNow = pNowObj.val;
