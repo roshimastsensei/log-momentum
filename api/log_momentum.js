@@ -14,20 +14,28 @@ const HEADERS = {
 };
 
 async function fetchPriceNow(id) {
-  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`;
-  const res = await fetch(url, { headers: HEADERS });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json?.[id]?.usd ?? null;
+  try {
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`;
+    const res = await fetch(url, { headers: HEADERS });
+    const json = await res.json();
+    const val = json?.[id]?.usd ?? null;
+    return { val, raw: json };
+  } catch (e) {
+    return { val: null, error: e.message };
+  }
 }
 
 async function fetchHistoricalPrice(id, daysAgo) {
-  const date = formatDate(daysAgo);
-  const url = `https://api.coingecko.com/api/v3/coins/${id}/history?date=${date}`;
-  const res = await fetch(url, { headers: HEADERS });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json?.market_data?.current_price?.usd ?? null;
+  try {
+    const date = formatDate(daysAgo);
+    const url = `https://api.coingecko.com/api/v3/coins/${id}/history?date=${date}`;
+    const res = await fetch(url, { headers: HEADERS });
+    const json = await res.json();
+    const val = json?.market_data?.current_price?.usd ?? null;
+    return { val, raw: json };
+  } catch (e) {
+    return { val: null, error: e.message };
+  }
 }
 
 function computeAccelLog(pNow, p3, p7) {
@@ -51,19 +59,27 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Missing token ID' });
     }
 
-    const [pNow, p3, p7] = await Promise.all([
-      fetchPriceNow(id),
-      fetchHistoricalPrice(id, 3),
-      fetchHistoricalPrice(id, 7),
-    ]);
+    const pNowObj = await fetchPriceNow(id);
+    const p3Obj = await fetchHistoricalPrice(id, 3);
+    const p7Obj = await fetchHistoricalPrice(id, 7);
 
-    if (pNow === null || p3 === null || p7 === null) {
-      return res.status(502).json({ error: 'Price fetch failed', id, pNow, p3, p7 });
-    }
+    const pNow = pNowObj.val;
+    const p3 = p3Obj.val;
+    const p7 = p7Obj.val;
 
     const accelLog = computeAccelLog(pNow, p3, p7);
+
     if (accelLog === null) {
-      return res.status(422).json({ error: 'Computation failed', id, pNow, p3, p7 });
+      return res.status(422).json({
+        error: 'Computation failed',
+        id,
+        pNow,
+        p3,
+        p7,
+        pNow_raw: pNowObj.raw ?? null,
+        p3_raw: p3Obj.raw ?? null,
+        p7_raw: p7Obj.raw ?? null
+      });
     }
 
     return res.status(200).json({
@@ -71,9 +87,13 @@ module.exports = async (req, res) => {
       pt: pNow,
       pt_minus3: p3,
       pt_minus7: p7,
-      accel_log: accelLog,
+      accel_log: accelLog
     });
   } catch (err) {
-    return res.status(500).json({ error: 'Internal Server Error', details: err.message });
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      details: err.message,
+      id: req.body?.id ?? null
+    });
   }
 };
