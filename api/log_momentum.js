@@ -64,9 +64,9 @@ module.exports = async (req, res) => {
     }
 
     const pNowObj = await fetchPriceNow(id);
-    await delay(20000); // 20s pause
+    await delay(25000); // 20s pause
     const p3Obj = await fetchHistoricalPrice(id, 3);
-    await delay(20000); // 20s pause
+    await delay(25000); // 20s pause
     const p7Obj = await fetchHistoricalPrice(id, 7);
 
     const pNow = pNowObj.val;
