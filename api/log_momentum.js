@@ -9,8 +9,11 @@ function formatDate(daysAgo) {
   return `${day}-${month}-${year}`;
 }
 
+const API_KEY = process.env.CG_DEMO_KEY_RS_LOG;
+
 const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (compatible; LMR-Bot/1.0; +https://log-momentum.vercel.app)'
+  'User-Agent': 'Mozilla/5.0 (compatible; LMR-Bot/1.0; +https://log-momentum.vercel.app)',
+  'x-cg-demo-api-key': API_KEY
 };
 
 function delay(ms) {
@@ -64,9 +67,9 @@ module.exports = async (req, res) => {
     }
 
     const pNowObj = await fetchPriceNow(id);
-    await delay(25000); // 20s pause
+    await delay(25000); // 25s pause
     const p3Obj = await fetchHistoricalPrice(id, 3);
-    await delay(25000); // 20s pause
+    await delay(25000); // 25s pause
     const p7Obj = await fetchHistoricalPrice(id, 7);
 
     const pNow = pNowObj.val;
@@ -103,3 +106,4 @@ module.exports = async (req, res) => {
     });
   }
 };
+
